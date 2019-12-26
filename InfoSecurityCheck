@@ -1,0 +1,105 @@
+from winreg import *
+import os
+
+
+# 本地安全策略信息
+os.popen(r"secedit /export /cfg c:\secinfo.txt")
+# 管理员组内用户
+administrator_users = os.popen("net localgroup Administrators").read().split('\n')[6:-3]
+
+
+# 查看注册表键值并修改
+def check_and_set(host_key, sub_key, value_name, value):
+    temp_key = OpenKey(host_key, sub_key, 0, KEY_ALL_ACCESS)
+    key_type = QueryValueEx(temp_key, value_name)[1]
+    SetValueEx(temp_key, value_name, 0, key_type, value)
+    if QueryValueEx(temp_key, value_name)[0] == value:
+        return 1
+
+
+# 查看注册表键值
+def check_key(host_key, sub_key, value_name):
+    temp_key = OpenKey(host_key, sub_key, 0, KEY_ALL_ACCESS)
+    key_value = QueryValueEx(temp_key, value_name)[0]
+    return key_value
+
+
+print("个人电脑信息安全加固及检查脚本v1.0")
+print("说明：√表示通过，×表示不通过，△表示需进行确认。")
+print("")
+# 判断是否为云桌面用户
+cloud_user = int(input("请输入是否为云桌面用户(0代表否，1代表是)："))
+# 判断是否为实验室电脑
+laboratory_user = int(input("请输入是否为实验室PC(0代表否，1代表是)："))
+print("*************************自动检查项*************************")
+if os.popen("NetSh Advfirewall set allprofiles state on").readlines()[0] == "确定。\n":
+    print("√ 1.防火墙已开启")
+
+secfile = open('c:\\secinfo.txt', 'r', encoding='utf-16')
+secinfo = secfile.read()
+if "EnableGuestAccount = 0" in secinfo:
+    print("√ 2.已禁用本地Guest账户")
+else:
+    print("× 2.本地Guest用户未禁用！请在【计算机（右键）→管理→系统工具→本地用户和组→用户】禁用Guest用户！")
+
+if check_and_set(HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\services\LanmanServer\Parameters", "AutoShareServer", 0):
+    print("√ 3.已关闭共享功能")
+
+security_baseline = check_key(HKEY_LOCAL_MACHINE,
+                              r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Security Baseline",
+                              "DisplayName")
+print("√ 4.当前安全补丁版本为：", security_baseline)
+
+# 防火墙规则待补充
+
+if laboratory_user == 1:
+    if check_and_set(HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Internet Settings", "ProxyEnable", 0):
+        print("√ 5.实验室PC：已关闭IE代理")
+else:
+    ie_ProxyOverride = check_key(HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Internet Settings",
+                                 "ProxyOverride")
+    ie_ProxyServer = check_key(HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Internet Settings",
+                               "ProxyServer")
+    if ie_ProxyOverride == r"10.*.*.*;*.zte.com.cn;192.168.*.*;*.zte.intra;127.0.0.1;<local>" and ie_ProxyServer == r"proxy.zte.com.cn:80":
+        print("√ 5.非实验室PC：IE代理设置正确")
+
+if cloud_user == 0:
+    if check_and_set(HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\services\WinHttpAutoProxySvc", "Start", 4) and \
+            check_and_set(HKEY_LOCAL_MACHINE,r"SYSTEM\CurrentControlSet\services\LanmanServer", "Start", 4):
+        print("√ 6.已禁用server和winHTTP Web Proxy Auto-Discovery Service服务")
+else:
+    if check_and_set(HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\services\LanmanServer", "Start", 4):
+        print("√ 6.已禁用winHTTP Web Proxy Auto-Discovery Service服务。")
+
+if "EnableAdminAccount = 0" in secinfo:
+    print("√ 8.已禁用本地Administrator账户")
+else:
+    print("! 8.本地Administrator账户未禁用，请检查是否设置强密码！")
+
+print("! 7.管理员组内用户（请自行确认是否有多余用户）：")
+for user in administrator_users:
+    print("   ", user)
+
+print("")
+
+secfile.close()
+os.remove(r"c:\secinfo.txt")
+
+print("*************************手动检查项*************************")
+
+print("【UDS图标→右键→病毒防护→VirusScan控制台→（点击McAfee界面右上角处向下的箭头）设置→显示高级（界面右上角）→通用设置→任务】")
+print("! 1.McAfee自动更新：查看【默认客户端更新项(AV8.8为AutoUpdate)】的上次运行时间是否为今天")
+print("! 2.McAfee自定义扫描：查看【每周自定义扫描项】的上次运行时间是否为一周以内")
+print("! 3.进行UDS扫描，确认没有违规软件")
+print("! 4.在【控制面板→系统和安全→Windows Update】内检查更新")
+print("! 5.确认本地文档已加密")
+print("! 6.确认云桌面用户本地资料上传云内")
+print("! 7.在【计算机（右键）→属性】内检查是否已激活")
+
+
+
+
+
+
+
+
