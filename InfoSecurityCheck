@@ -25,13 +25,15 @@ def check_key(host_key, sub_key, value_name):
 
 
 print("个人电脑信息安全加固及检查脚本v1.0")
-print("说明：√表示通过，×表示不通过，△表示需进行确认。")
+print("说明：√表示通过，×表示不通过，!表示需进行确认。")
 print("")
 # 判断是否为云桌面用户
 cloud_user = int(input("请输入是否为云桌面用户(0代表否，1代表是)："))
 # 判断是否为实验室电脑
 laboratory_user = int(input("请输入是否为实验室PC(0代表否，1代表是)："))
-print("*************************自动检查项*************************")
+print(" ")
+print("=============================自动检查项=============================")
+print("")
 if os.popen("NetSh Advfirewall set allprofiles state on").readlines()[0] == "确定。\n":
     print("√ 1.防火墙已开启")
 
@@ -48,13 +50,13 @@ if check_and_set(HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\services\LanmanS
 security_baseline = check_key(HKEY_LOCAL_MACHINE,
                               r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Security Baseline",
                               "DisplayName")
-print("√ 4.当前安全补丁版本为：", security_baseline)
+print("! 4.当前安全补丁版本为：", security_baseline)
 
 # 防火墙规则待补充
 
 if laboratory_user == 1:
     if check_and_set(HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Internet Settings", "ProxyEnable", 0):
-        print("√ 5.实验室PC：已关闭IE代理")
+        print("√ 5.实验室PC：IE代理已关闭")
 else:
     ie_ProxyOverride = check_key(HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Internet Settings",
                                  "ProxyOverride")
@@ -72,11 +74,11 @@ else:
         print("√ 6.已禁用winHTTP Web Proxy Auto-Discovery Service服务。")
 
 if "EnableAdminAccount = 0" in secinfo:
-    print("√ 8.已禁用本地Administrator账户")
+    print("√ 7.已禁用本地Administrator账户")
 else:
-    print("! 8.本地Administrator账户未禁用，请检查是否设置强密码！")
+    print("! 7.本地Administrator账户未禁用，请检查是否设置强密码！")
 
-print("! 7.管理员组内用户（请自行确认是否有多余用户）：")
+print("! 8.管理员组内用户（请自行确认是否有多余用户）：")
 for user in administrator_users:
     print("   ", user)
 
@@ -85,8 +87,8 @@ print("")
 secfile.close()
 os.remove(r"c:\secinfo.txt")
 
-print("*************************手动检查项*************************")
-
+print("=============================手动检查项=============================")
+print("")
 print("【UDS图标→右键→病毒防护→VirusScan控制台→（点击McAfee界面右上角处向下的箭头）设置→显示高级（界面右上角）→通用设置→任务】")
 print("! 1.McAfee自动更新：查看【默认客户端更新项(AV8.8为AutoUpdate)】的上次运行时间是否为今天")
 print("! 2.McAfee自定义扫描：查看【每周自定义扫描项】的上次运行时间是否为一周以内")
@@ -95,7 +97,8 @@ print("! 4.在【控制面板→系统和安全→Windows Update】内检查更�
 print("! 5.确认本地文档已加密")
 print("! 6.确认云桌面用户本地资料上传云内")
 print("! 7.在【计算机（右键）→属性】内检查是否已激活")
-
+print(" ")
+print("=============================脚本已终止=============================")
 
 
 
